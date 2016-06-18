@@ -2,6 +2,28 @@ require 'zlib'
 
 module Travis
   class Rollout
+    class ByValue < Struct.new(:name, :key, :value, :redis)
+      def matches?
+        !!value && values.include?(value)
+      end
+
+      def values
+        values = redis && redis.smembers(:"#{name}.rollout.#{key}s")
+        values.any? ? values : ENV["ROLLOUT_#{key.to_s.upcase}S"].to_s.split(',')
+      end
+    end
+
+    class ByPercent < Struct.new(:name, :value, :redis)
+      def matches?
+        !!value && value % 100 < percent
+      end
+
+      def percent
+        percent = ENV['ROLLOUT_PERCENT'] || redis && redis.get(:"#{name}.rollout.percent") || -1
+        percent.to_i
+      end
+    end
+
     ENVS = %w(production staging)
 
     def self.run(*all, &block)
@@ -24,7 +46,7 @@ module Travis
     end
 
     def matches?
-      production? and enabled? and (by_owner? or by_repo? or by_user? or by_percent?)
+      production? and enabled? and (by_value? or by_percent?)
     end
 
     private
@@ -46,7 +68,8 @@ module Travis
       end
 
       def owners
-        read_collection('rollout', 'owners')
+        owners = redis && redis.smembers(:"#{name}.rollout.owners")
+        owners.any? ? owners : ENV["ROLLOUT_OWNERS"].to_s.split(',')
       end
 
       def by_repo?
@@ -58,7 +81,8 @@ module Travis
       end
 
       def repos
-        read_collection('rollout', 'repos')
+        repos = redis && redis.smembers(:"#{name}.rollout.repos")
+        repos.any? ? repos : ENV["ROLLOUT_REPOS"].to_s.split(',')
       end
 
       def by_user?
@@ -69,22 +93,26 @@ module Travis
         args[:user]
       end
 
+      def by_value?
+        matchers.map(&:matches?).inject(&:|)
+      end
+
       def users
-        read_collection('rollout', 'users')
+        users = redis && redis.smembers(:"#{name}.rollout.users")
+        users.any? ? users : ENV["ROLLOUT_USERS"].to_s.split(',')
+      end
+
+      def matchers
+        args.map { |key, value| ByValue.new(name, key, value, redis) }
       end
 
       def by_percent?
-        !!uid && uid % 100 < percent
+        ByPercent.new(name, uid, redis).matches?
       end
 
       def uid
         uid = args[:uid]
         uid.is_a?(String) ? Zlib.crc32(uid).to_i & 0x7fffffff : uid
-      end
-
-      def percent
-        percent = ENV['ROLLOUT_PERCENT'] || redis && redis.get(:"#{name}.rollout.percent") || -1
-        percent.to_i
       end
 
       def name
