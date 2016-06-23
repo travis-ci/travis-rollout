@@ -1,12 +1,18 @@
 require 'zlib'
 
 module Travis
-  class Rollout < Struct.new(:args, :options, :block)
+  class Rollout
     ENVS = %w(production staging)
 
-    def self.run(*args, &block)
-      rollout = new(*args, block)
+    def self.run(*all, &block)
+      rollout = new(*all, &block)
       rollout.run if rollout.matches?
+    end
+
+    attr_reader :args, :options, :block
+
+    def initialize(args = {}, options = {}, &block)
+      @args, @options, @block = args, options, block
     end
 
     def run
@@ -36,8 +42,7 @@ module Travis
       end
 
       def owners
-        owners = redis && redis.smembers(:"#{name}.rollout.owners")
-        owners.any? ? owners : ENV["ROLLOUT_OWNERS"].to_s.split(',')
+        read_collection('rollout', 'owners')
       end
 
       def by_repo?
@@ -49,8 +54,7 @@ module Travis
       end
 
       def repos
-        repos = redis && redis.smembers(:"#{name}.rollout.repos")
-        repos.any? ? repos : ENV["ROLLOUT_REPOS"].to_s.split(',')
+        read_collection('rollout', 'repos')
       end
 
       def by_user?
@@ -62,8 +66,7 @@ module Travis
       end
 
       def users
-        users = redis && redis.smembers(:"#{name}.rollout.users")
-        users.any? ? users : ENV["ROLLOUT_USERS"].to_s.split(',')
+        read_collection('rollout', 'users')
       end
 
       def by_percent?
@@ -90,6 +93,16 @@ module Travis
 
       def camelize(string)
         string.to_s.sub(/./) { |char| char.upcase }
+      end
+
+      def read_collection(*path)
+        redis_path = path.map(&:downcase).join('.')
+        env_key = path.map(&:upcase).join('_')
+        if redis
+          redis_collection = redis.smembers(:"#{name}.#{redis_path}")
+          return redis_collection if redis_collection.any?
+        end
+        ENV.fetch(env_key, '').to_s.split(',') 
       end
   end
 end

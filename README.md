@@ -3,16 +3,11 @@
 Enable by setting an env var `ROLLOUT` and setting `ENV` to `production` or
 `staging`.
 
-Usage:
+## Usage
 
 ```
-args = {
-  uid:  1
-  user: 'svenfuchs',
-  repo: 'travis-hub'
-}
-
-Rollout.reroute(args) do
+args = { uid: 1, user: 'svenfuchs', repo: 'travis-hub' }
+Travis::Rollout.run(args) do
   # reroute the message
 end
 
@@ -29,7 +24,7 @@ turn it into an integer.
 If a redis instance is passed as an option it will additionally check redis:
 
 ```
-Rollout.reroute(args, redis: redis) do
+Travis::Rollout.run(args, redis: redis) do
   # reroute the message
 end
 ```
