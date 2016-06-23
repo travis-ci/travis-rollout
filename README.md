@@ -32,5 +32,5 @@ end
 It will use the value of the env var `ROLLOUT` as a namespace (e.g. `sync`), and check the keys:
 
 * enabling: `sync.rollout.enabled`
-* args: `sync.rollout.users`, `sync.rollout.repos`
+* args: `sync.rollout.users`, `sync.rollout.repos`, `sync.rollout.owners`
 * percentage: `sync.rollout.percent`
