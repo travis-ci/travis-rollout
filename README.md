@@ -5,12 +5,11 @@ Enable by setting an env var `ROLLOUT` and setting `ENV` to `production` or
 
 ## Usage
 
-```
+```ruby
 args = { uid: 1, user: 'svenfuchs', repo: 'travis-hub' }
 Travis::Rollout.run(args) do
   # reroute the message
 end
-
 ```
 
 This will match:
@@ -23,7 +22,7 @@ turn it into an integer.
 
 If a redis instance is passed as an option it will additionally check redis:
 
-```
+```ruby
 Travis::Rollout.run(args, redis: redis) do
   # reroute the message
 end
