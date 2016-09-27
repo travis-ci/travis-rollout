@@ -9,6 +9,10 @@ module Travis
       rollout.run if rollout.matches?
     end
 
+    def self.matches?(*all)
+      new(*all).matches?
+    end
+
     attr_reader :args, :options, :block
 
     def initialize(args = {}, options = {}, &block)
@@ -102,7 +106,7 @@ module Travis
           redis_collection = redis.smembers(:"#{name}.#{redis_path}")
           return redis_collection if redis_collection.any?
         end
-        ENV.fetch(env_key, '').to_s.split(',') 
+        ENV.fetch(env_key, '').to_s.split(',')
       end
   end
 end
