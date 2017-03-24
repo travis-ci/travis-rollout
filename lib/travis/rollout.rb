@@ -35,10 +35,13 @@ module Travis
       new(*all).matches?
     end
 
-    attr_reader :args, :options, :block
+    attr_reader :key, :args, :redis
 
-    def initialize(args = {}, options = {}, &block)
-      @args, @options, @block = args, options, block
+    def initialize(key, args, &block)
+      @key   = key
+      @args  = args
+      @block = block
+      @redis = args.delete(:redis)
     end
 
     def run
@@ -117,10 +120,6 @@ module Travis
 
       def name
         ENV['ROLLOUT'].to_s.split('.').first
-      end
-
-      def redis
-        options[:redis]
       end
 
       def camelize(string)

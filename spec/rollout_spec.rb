@@ -137,7 +137,7 @@ describe Travis::Rollout do
     let(:id)      { '517be336-f16d-45cf-aa9b-a429547af6ad' }
     let(:owner)   { 'carlad' }
     let(:repo)    { 'travis-ci/travis-hub' }
-    let(:rollout) { described_class.new({ uid: id, owner: owner, repo: repo }, redis: redis) }
+    let(:rollout) { described_class.new(name, uid: id, owner: owner, repo: repo, redis: redis) }
 
     include_examples 'matches by', 'owner name'
     include_examples 'matches by', 'repo slug'
@@ -151,7 +151,7 @@ describe Travis::Rollout do
     describe 'in the user sync worker' do
       let(:id)      { 1 }
       let(:user)    { 'carlad' }
-      let(:rollout) { described_class.new({ uid: id, user: user }, redis: redis) }
+      let(:rollout) { described_class.new(name, uid: id, user: user, redis: redis) }
 
       include_examples 'matches by', 'user name'
       include_examples 'matches by', 'percentage'
@@ -160,7 +160,7 @@ describe Travis::Rollout do
     describe 'in the repo branches sync worker' do
       let(:id)      { 1 } # user id
       let(:owner)   { 'carlad' }
-      let(:rollout) { described_class.new({ uid: id, owner: owner }, redis: redis) }
+      let(:rollout) { described_class.new(name, uid: id, owner: owner, redis: redis) }
 
       include_examples 'matches by', 'owner name'
       include_examples 'matches by', 'percentage'
