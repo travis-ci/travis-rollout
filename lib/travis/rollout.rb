@@ -2,34 +2,76 @@ require 'zlib'
 
 module Travis
   class Rollout
-    class RedisNoop
-      def get(*); end
-      def smembers(*); end
+    class Env < Struct.new(:name)
+      ENVS = %w(production staging)
+
+      def production?
+        ENVS.include?(ENV['ENV'])
+      end
+
+      def enabled?
+        names.include?(name)
+      end
+
+      def values(key)
+        ENV["ROLLOUT_#{name.upcase}_#{key.to_s.upcase}S"].to_s.split(',')
+      end
+
+      def percent
+        ENV["ROLLOUT_#{name.upcase}_PERCENT"]
+      end
+
+      def names
+        ENV['ROLLOUT'].to_s.split(',')
+      end
     end
 
-    class ByValue < Struct.new(:name, :key, :value, :redis)
+    class RedisNoop
+      def get(*); end
+      def smembers(*); [] end
+    end
+
+    class Redis < Struct.new(:name, :redis)
+      def enabled?
+        redis.get(:"#{name}.rollout.enabled") == '1'
+      end
+
+      def percent
+        redis.get(:"#{name}.rollout.percent")
+      end
+
+      def values(key)
+        redis.smembers(:"#{name}.rollout.#{key}s")
+      end
+
+      def redis
+        super || self.redis = RedisNoop.new
+      end
+    end
+
+    class ByValue < Struct.new(:name, :key, :value, :env, :redis)
       def matches?
         !!value && values.include?(value)
       end
 
       def values
-        values = redis.smembers(:"#{name}.rollout.#{key}s")
-        values.any? ? values : ENV["ROLLOUT_#{key.to_s.upcase}S"].to_s.split(',')
+        values = redis.values(key)
+        values = env.values(key) unless values.any?
+        values
       end
     end
 
-    class ByPercent < Struct.new(:name, :value, :redis)
+    class ByPercent < Struct.new(:name, :value, :env, :redis)
       def matches?
         !!value && value % 100 < percent
       end
 
       def percent
-        percent = ENV['ROLLOUT_PERCENT'] || redis.get(:"#{name}.rollout.percent") || -1
+        percent = env.percent || redis.percent || -1
         percent.to_i
       end
     end
 
-    ENVS = %w(production staging)
 
     def self.run(*all, &block)
       rollout = new(*all, &block)
@@ -40,13 +82,14 @@ module Travis
       new(*all).matches?
     end
 
-    attr_reader :key, :args, :redis
+    attr_reader :name, :args, :env, :redis
 
-    def initialize(key, args, &block)
-      @key   = key
+    def initialize(name, args, &block)
+      @name  = name
       @args  = args
       @block = block
-      @redis = args.delete(:redis) || RedisNoop.new
+      @redis = Redis.new(name, args.delete(:redis) )
+      @env   = Env.new(name)
     end
 
     def run
@@ -54,17 +97,13 @@ module Travis
     end
 
     def matches?
-      production? and enabled? and (by_value? or by_percent?)
+      env.production? and enabled? and (by_value? or by_percent?)
     end
 
     private
 
-      def production?
-        ENVS.include?(ENV['ENV'])
-      end
-
       def enabled?
-        !!ENV['ROLLOUT'] && (ENV['ROLLOUT'] == name || redis.get(:"#{name}.rollout.enabled") == '1')
+        env.enabled? || redis.enabled?
       end
 
       def by_owner?
@@ -111,20 +150,16 @@ module Travis
       end
 
       def matchers
-        args.map { |key, value| ByValue.new(name, key, value, redis) }
+        args.map { |key, value| ByValue.new(name, key, value, env, redis) }
       end
 
       def by_percent?
-        ByPercent.new(name, uid, redis).matches?
+        ByPercent.new(name, uid, env, redis).matches?
       end
 
       def uid
         uid = args[:uid]
         uid.is_a?(String) ? Zlib.crc32(uid).to_i & 0x7fffffff : uid
-      end
-
-      def name
-        ENV['ROLLOUT'].to_s.split('.').first
       end
 
       def camelize(string)

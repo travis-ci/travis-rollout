@@ -3,16 +3,15 @@ require 'travis/rollout'
 
 describe Travis::Rollout do
   let(:redis) { Redis.new }
-  let(:env)   { %w(ENV ROLLOUT ROLLOUT_OWNERS ROLLOUT_REPOS ROLLOUT_USERS ROLLOUT_PERCENT) }
+  let(:env)   { %w(ENV ROLLOUT ROLLOUT_#{name.upcase}_OWNERS ROLLOUT_#{name.upcase}_REPOS ROLLOUT_#{name.upcase}_USERS ROLLOUT_#{name.upcase}_PERCENT) }
 
-  before  { redis.set("#{name}.rollout.enabled", '1') }
   after   { redis.flushall }
   after   { env.each { |key| ENV.delete(key) } }
   subject { rollout.matches? }
 
   shared_examples_for 'matches by owner name' do
     context 'matches if the given owner name matches the OWNERS env var' do
-      before { ENV['ROLLOUT_OWNERS'] = owner }
+      before { ENV["ROLLOUT_#{name.upcase}_OWNERS"] = owner }
       it { should eq true }
     end
 
@@ -24,7 +23,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'does not match by owner name' do
     context 'does not match even if the given owner name matches the OWNERS env var' do
-      before { ENV['ROLLOUT_OWNERS'] = owner }
+      before { ENV["ROLLOUT_#{name.upcase}_OWNERS"] = owner }
       it { should eq false }
     end
 
@@ -36,7 +35,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'matches by repo slug' do
     context 'matches if the given repo slug matches the REPOS env var' do
-      before { ENV['ROLLOUT_REPOS'] = repo }
+      before { ENV["ROLLOUT_#{name.upcase}_REPOS"] = repo }
       it { should eq true }
     end
 
@@ -48,7 +47,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'does not match by repo slug' do
     context 'does not match even if the given repo slug matches the REPOS env var' do
-      before { ENV['ROLLOUT_REPOS'] = repo }
+      before { ENV["ROLLOUT_#{name.upcase}_REPOS"] = repo }
       it { should eq false }
     end
 
@@ -60,7 +59,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'matches by user name' do
     context 'matches if the given user name matches the REPOS env var' do
-      before { ENV['ROLLOUT_USERS'] = user }
+      before { ENV["ROLLOUT_#{name.upcase}_USERS"] = user }
       it { should eq true }
     end
 
@@ -72,7 +71,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'does not match by user name' do
     context 'does not match even if the given user slug matches the REPOS env var' do
-      before { ENV['ROLLOUT_USERS'] = user }
+      before { ENV["ROLLOUT_#{name.upcase}_USERS"] = user }
       it { should eq false }
     end
 
@@ -84,7 +83,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'matches by percentage' do
     context 'matches if the given id matches the ROLLOUT_PERCENT env var' do
-      before { ENV['ROLLOUT_PERCENT'] = '100' }
+      before { ENV["ROLLOUT_#{name.upcase}_PERCENT"] = '100' }
       it { should eq true }
     end
 
@@ -96,7 +95,7 @@ describe Travis::Rollout do
 
   shared_examples_for 'does not match by percentage' do
     context 'does not match even if the given id matches the ROLLOUT_PERCENT env var' do
-      before { ENV['ROLLOUT_PERCENT'] = '100' }
+      before { ENV["ROLLOUT_#{name.upcase}_PERCENT"] = '100' }
       it { should eq false }
     end
 
@@ -107,26 +106,39 @@ describe Travis::Rollout do
   end
 
   shared_examples_for 'matches by' do |type|
+    context 'with ROLLOUT being set to another name' do
+      before { ENV['ENV'] = 'production' }
+      before { ENV['ROLLOUT'] = 'something_else' }
+      include_examples "does not match by #{type}"
+    end
+
+    context 'with ROLLOUT being set to another name, but [name].rollout.enabled being set in redis' do
+      before { ENV['ENV'] = 'production' }
+      before { ENV['ROLLOUT'] = 'something_else' }
+      before { redis.set("#{name}.rollout.enabled", '1') }
+      include_examples "matches by #{type}"
+    end
+
     context 'with ROLLOUT being set in production' do
-      before  { ENV['ENV'] = 'production' }
-      before  { ENV['ROLLOUT'] = name }
+      before { ENV['ENV'] = 'production' }
+      before { ENV['ROLLOUT'] = name }
       include_examples "matches by #{type}"
     end
 
     context 'with ROLLOUT being set in staging' do
-      before  { ENV['ENV'] = 'production' }
-      before  { ENV['ROLLOUT'] = name }
+      before { ENV['ENV'] = 'production' }
+      before { ENV['ROLLOUT'] = name }
       include_examples "matches by #{type}"
     end
 
     context 'with ROLLOUT being set in development' do
-      before  { ENV['ENV'] = 'development' }
-      before  { ENV['ROLLOUT'] = name }
+      before { ENV['ENV'] = 'development' }
+      before { ENV['ROLLOUT'] = name }
       include_examples "does not match by #{type}"
     end
 
     context 'with ROLLOUT not set in production' do
-      before  { ENV['ENV'] = 'production' }
+      before { ENV['ENV'] = 'production' }
       include_examples "does not match by #{type}"
     end
   end
