@@ -2,13 +2,18 @@ require 'zlib'
 
 module Travis
   class Rollout
+    class RedisNoop
+      def get(*); end
+      def smembers(*); end
+    end
+
     class ByValue < Struct.new(:name, :key, :value, :redis)
       def matches?
         !!value && values.include?(value)
       end
 
       def values
-        values = redis && redis.smembers(:"#{name}.rollout.#{key}s")
+        values = redis.smembers(:"#{name}.rollout.#{key}s")
         values.any? ? values : ENV["ROLLOUT_#{key.to_s.upcase}S"].to_s.split(',')
       end
     end
@@ -19,7 +24,7 @@ module Travis
       end
 
       def percent
-        percent = ENV['ROLLOUT_PERCENT'] || redis && redis.get(:"#{name}.rollout.percent") || -1
+        percent = ENV['ROLLOUT_PERCENT'] || redis.get(:"#{name}.rollout.percent") || -1
         percent.to_i
       end
     end
@@ -41,7 +46,7 @@ module Travis
       @key   = key
       @args  = args
       @block = block
-      @redis = args.delete(:redis)
+      @redis = args.delete(:redis) || RedisNoop.new
     end
 
     def run
@@ -59,7 +64,7 @@ module Travis
       end
 
       def enabled?
-        !!ENV['ROLLOUT'] && (!redis || redis.get(:"#{name}.rollout.enabled") == '1')
+        !!ENV['ROLLOUT'] && (ENV['ROLLOUT'] == name || redis.get(:"#{name}.rollout.enabled") == '1')
       end
 
       def by_owner?
