@@ -10,15 +10,15 @@ module Travis
       end
 
       def enabled?
-        names.include?(name)
+        names.include?(name.to_s)
       end
 
       def values(key)
-        ENV["ROLLOUT_#{name.upcase}_#{key.to_s.upcase}S"].to_s.split(',')
+        ENV["ROLLOUT_#{name.to_s.upcase}_#{key.to_s.upcase}S"].to_s.split(',')
       end
 
       def percent
-        ENV["ROLLOUT_#{name.upcase}_PERCENT"]
+        ENV["ROLLOUT_#{name.to_s.upcase}_PERCENT"]
       end
 
       def names
