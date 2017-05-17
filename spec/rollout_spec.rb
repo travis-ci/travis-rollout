@@ -107,38 +107,22 @@ describe Travis::Rollout do
 
   shared_examples_for 'matches by' do |type|
     context 'with ROLLOUT being set to another name' do
-      before { ENV['ENV'] = 'production' }
       before { ENV['ROLLOUT'] = 'something_else' }
       include_examples "does not match by #{type}"
     end
 
     context 'with ROLLOUT being set to another name, but [name].rollout.enabled being set in redis' do
-      before { ENV['ENV'] = 'production' }
       before { ENV['ROLLOUT'] = 'something_else' }
       before { redis.set("#{name}.rollout.enabled", '1') }
       include_examples "matches by #{type}"
     end
 
-    context 'with ROLLOUT being set in production' do
-      before { ENV['ENV'] = 'production' }
+    context 'with ROLLOUT being set' do
       before { ENV['ROLLOUT'] = name }
       include_examples "matches by #{type}"
     end
 
-    context 'with ROLLOUT being set in staging' do
-      before { ENV['ENV'] = 'production' }
-      before { ENV['ROLLOUT'] = name }
-      include_examples "matches by #{type}"
-    end
-
-    context 'with ROLLOUT being set in development' do
-      before { ENV['ENV'] = 'development' }
-      before { ENV['ROLLOUT'] = name }
-      include_examples "does not match by #{type}"
-    end
-
-    context 'with ROLLOUT not set in production' do
-      before { ENV['ENV'] = 'production' }
+    context 'with ROLLOUT not being set' do
       include_examples "does not match by #{type}"
     end
   end

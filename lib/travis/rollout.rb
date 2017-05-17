@@ -3,12 +3,6 @@ require 'zlib'
 module Travis
   class Rollout
     class Env < Struct.new(:name)
-      ENVS = %w(production staging)
-
-      def production?
-        ENVS.include?(ENV['ENV'])
-      end
-
       def enabled?
         names.include?(name)
       end
@@ -97,7 +91,7 @@ module Travis
     end
 
     def matches?
-      env.production? and enabled? and (by_value? or by_percent?)
+      enabled? and (by_value? or by_percent?)
     end
 
     private
