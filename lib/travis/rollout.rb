@@ -76,7 +76,7 @@ module Travis
       new(*all).matches?
     end
 
-    attr_reader :name, :args, :env, :redis
+    attr_reader :name, :args, :block, :redis, :env
 
     def initialize(name, args, &block)
       @name  = name
