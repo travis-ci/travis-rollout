@@ -22,8 +22,16 @@ This will match:
 * uid against the percentage `ROLLOUT_FEATURE_PERCENT`
 * remaining arg values against the env vars `ROLLOUT_FEATURE_USERS` and `ROLLOUT_FEATURE_REPOS` (as comma separated values)
 
-`uid` can be a string or integer. For a string it will calculate the crc32 to
-turn it into an integer.
+For example:
+
+```
+ROLLOUT=feature_foo
+ROLLOUT_FEATURE_FOO_OWNERS=joecorcoran,svenfuchs
+ROLLOUT_FEATURE_FOO_PERCENT=5
+```
+
+The `uid` passed can be a string or integer. For a string it will calculate the
+crc32 to turn it into an integer.
 
 If a redis instance is passed as an option it will additionally check redis:
 
