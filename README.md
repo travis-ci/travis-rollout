@@ -9,7 +9,7 @@ Enable by setting an env var `ROLLOUT` and setting `ENV` to `production` or
 args = {
   uid:  1
   user: 'svenfuchs',
-  repo: 'travis-hub'
+  repo: 'travis-ci/travis-hub'
 }
 
 Rollout.run(:feature, args) do
