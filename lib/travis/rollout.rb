@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'zlib'
 
 module Travis
@@ -22,7 +24,7 @@ module Travis
 
     class RedisNoop
       def get(*); end
-      def smembers(*); [] end
+      def smembers(*) = []
     end
 
     class Redis < Struct.new(:name, :redis)
@@ -66,7 +68,6 @@ module Travis
       end
     end
 
-
     def self.run(*all, &block)
       rollout = new(*all, &block)
       rollout.run if rollout.matches?
@@ -82,7 +83,7 @@ module Travis
       @name  = name
       @args  = args
       @block = block
-      @redis = Redis.new(name, args.delete(:redis) )
+      @redis = Redis.new(name, args.delete(:redis))
       @env   = Env.new(name)
     end
 
@@ -96,25 +97,25 @@ module Travis
 
     private
 
-      def enabled?
-        env.enabled? || redis.enabled?
-      end
+    def enabled?
+      env.enabled? || redis.enabled?
+    end
 
-      def by_value?
-        by_values.map(&:matches?).inject(&:|)
-      end
+    def by_value?
+      by_values.map(&:matches?).inject(&:|)
+    end
 
-      def by_values
-        args.map { |key, value| ByValue.new(name, key, value, env, redis) }
-      end
+    def by_values
+      args.map { |key, value| ByValue.new(name, key, value, env, redis) }
+    end
 
-      def by_percent?
-        ByPercent.new(name, uid, env, redis).matches?
-      end
+    def by_percent?
+      ByPercent.new(name, uid, env, redis).matches?
+    end
 
-      def uid
-        uid = args[:uid]
-        uid.is_a?(String) ? Zlib.crc32(uid).to_i & 0x7fffffff : uid
-      end
+    def uid
+      uid = args[:uid]
+      uid.is_a?(String) ? Zlib.crc32(uid).to_i & 0x7fffffff : uid
+    end
   end
 end
